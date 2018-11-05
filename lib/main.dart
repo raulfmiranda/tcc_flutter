@@ -34,21 +34,20 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  File picture;
-  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+  File _picture;
+  var _isUploadInProgress = false;
 
   Future _takePicture() async {
     var tempPicture = await ImagePicker.pickImage(source: ImageSource.camera);
 
     setState(() {
-      picture = tempPicture; 
+      _picture = tempPicture; 
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      key: _scaffoldKey,
       appBar: new AppBar(
         title: new Text(widget.title),
       ),
@@ -57,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           mainAxisSize: MainAxisSize.max,
           children: <Widget>[
-            picture == null ? Text('Take a picture.') : _uploadWidget(context),
+            _picture == null ? Text('Take a picture.') : _uploadWidget(),
             RaisedButton(
               child: Text('Take Picture'),
               onPressed: () {
@@ -70,31 +69,36 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _uploadWidget(BuildContext context) {
+  Widget _uploadWidget() {
     return Container(
       child: Column(
         children: <Widget>[
           RaisedButton(
             child: Text('Upload Picture'),
             onPressed: () {
-              final filename = basename(picture.path);
+              
+              setState(() {
+                _isUploadInProgress = true;                
+              });
+
+              final filename = basename(_picture.path);
               final StorageReference storageReference = FirebaseStorage.instance.ref().child('$filename');
-              final StorageUploadTask task = storageReference.putFile(picture);
+              final StorageUploadTask task = storageReference.putFile(_picture);
               final Future<StorageTaskSnapshot> storageTaskSnapshot = task.onComplete;
+              
               storageTaskSnapshot.whenComplete(() {
-                _showSnackBar('Upload completed.');
+                _picture.delete();
+                setState(() {
+                  _isUploadInProgress = false;
+                  _picture = null;
+                });
               });
             },
           ),
-          Image.file(picture, height: 300.0, width: 300.0),
+          Image.file(_picture, height: 300.0, width: 300.0),
+          _isUploadInProgress ? const CircularProgressIndicator() : new Container(),
         ],
       ),
     );
-  }
-
-  void _showSnackBar(String message) {
-    _scaffoldKey.currentState.showSnackBar(SnackBar(
-      content: Text(message),
-    ));
   }
 }

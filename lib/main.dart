@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:image/image.dart' as I;
+import 'dart:ui';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart' as IP;
 import 'package:firebase_storage/firebase_storage.dart';
 
 void main() => runApp(new MyApp());
@@ -10,7 +12,7 @@ void main() => runApp(new MyApp());
 class MyApp extends StatelessWidget {
   
   final _title = "TCC Flutter";
-  
+
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
@@ -24,7 +26,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({this.title});
+  MyHomePage({Key key, this.title}) : super(key: key);
 
   final String title;
 
@@ -35,10 +37,11 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   File _picture;
-  var _isUploadInProgress = false;
+  var _isInProgress = false;
+  var _toApplyFilter = false;
 
   Future _takePicture() async {
-    var tempPicture = await ImagePicker.pickImage(source: ImageSource.camera);
+    var tempPicture = await IP.ImagePicker.pickImage(source: IP.ImageSource.camera);
 
     setState(() {
       _picture = tempPicture; 
@@ -56,7 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           mainAxisSize: MainAxisSize.max,
           children: <Widget>[
-            _picture == null ? Text('Take a picture.') : _uploadWidget(),
+            _picture == null ? Text('Take a picture.') : _uploadFilterWidget(),
             RaisedButton(
               child: Text('Take Picture'),
               onPressed: () {
@@ -69,7 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _uploadWidget() {
+  Widget _uploadFilterWidget() {
     return Container(
       child: Column(
         children: <Widget>[
@@ -78,7 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               
               setState(() {
-                _isUploadInProgress = true;                
+                _isInProgress = true;                
               });
 
               final filename = basename(_picture.path);
@@ -89,16 +92,46 @@ class _MyHomePageState extends State<MyHomePage> {
               storageTaskSnapshot.whenComplete(() {
                 _picture.delete();
                 setState(() {
-                  _isUploadInProgress = false;
+                  _isInProgress = false;
+                });
+                setState(() {
                   _picture = null;
                 });
               });
             },
           ),
-          Image.file(_picture, height: 300.0, width: 300.0),
-          _isUploadInProgress ? const CircularProgressIndicator() : new Container(),
+          _buildImage(applyFilter: _toApplyFilter),
+          _isInProgress ? const CircularProgressIndicator() : 
+          RaisedButton(
+            child: Text('Apply Filter'),
+            onPressed: () {
+              setState(() {
+                _isInProgress = true;
+              });
+              setState(() {
+                _toApplyFilter = true;
+              });
+            },
+          ),
         ],
       ),
     );
   }
+
+  Image _buildImage({bool applyFilter = false}) {
+     
+    if(applyFilter) {
+      var img = I.decodeImage(_picture.readAsBytesSync());
+      var imgGray = I.grayscale(img);
+      var png = I.encodePng(imgGray);
+
+      setState(() {
+        _isInProgress = false;
+      });
+
+      return Image.memory(png, height: 300.0, width: 300.0);
+    }
+    return Image.file(_picture, height: 300.0, width: 300.0);
+  }
+
 }

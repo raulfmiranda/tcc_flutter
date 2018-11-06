@@ -127,6 +127,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       setState(() {
         _isInProgress = false;
+        _picture.writeAsBytes(png);
       });
 
       return Image.memory(png, height: 300.0, width: 300.0);

@@ -37,14 +37,16 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   File _picture;
+  Image _imageFromPic;
+  var _uploadButtonName = "UPLOAD PICTURE";
   var _isInProgress = false;
-  var _toApplyFilter = false;
 
   Future _takePicture() async {
     var tempPicture = await IP.ImagePicker.pickImage(source: IP.ImageSource.camera);
 
     setState(() {
       _picture = tempPicture; 
+      _imageFromPic = Image.file(_picture, height: 300.0, width: 300.0, gaplessPlayback: false);
     });
   }
 
@@ -59,9 +61,9 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           mainAxisSize: MainAxisSize.max,
           children: <Widget>[
-            _picture == null ? Text('Take a picture.') : _uploadFilterWidget(),
+            _picture == null ? Container() : _uploadFilterWidget(),
             RaisedButton(
-              child: Text('Take Picture'),
+              child: Text('TAKE PICTURE'),
               onPressed: () {
                 _takePicture();
               },
@@ -77,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Column(
         children: <Widget>[
           RaisedButton(
-            child: Text('Upload Picture'),
+            child: Text("$_uploadButtonName"),
             onPressed: () {
               
               setState(() {
@@ -90,27 +92,29 @@ class _MyHomePageState extends State<MyHomePage> {
               final Future<StorageTaskSnapshot> storageTaskSnapshot = task.onComplete;
               
               storageTaskSnapshot.whenComplete(() {
-                _picture.delete();
+                // _picture.delete();
                 setState(() {
                   _isInProgress = false;
-                });
-                setState(() {
-                  _picture = null;
+                  _uploadButtonName = "PICTURE SENT";
+                  // _picture = null;
                 });
               });
             },
           ),
-          _buildImage(applyFilter: _toApplyFilter),
-          _isInProgress ? const CircularProgressIndicator() : 
+          Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              _imageFromPic,
+              _isInProgress ? CircularProgressIndicator() : Container(),
+            ],
+          ),          
           RaisedButton(
-            child: Text('Apply Filter'),
+            child: Text('APPLY FILTER'),
             onPressed: () {
               setState(() {
                 _isInProgress = true;
               });
-              setState(() {
-                _toApplyFilter = true;
-              });
+              _applyFilter();
             },
           ),
         ],
@@ -118,21 +122,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Image _buildImage({bool applyFilter = false}) {
-     
-    if(applyFilter) {
-      var img = I.decodeImage(_picture.readAsBytesSync());
-      var imgGray = I.grayscale(img);
-      var png = I.encodePng(imgGray);
+  Future<void> _applyFilter() async {
+    var img = await new Future(() => I.decodeImage(_picture.readAsBytesSync()));
+    var imgGray = await new Future(() => I.grayscale(img));
+    var png = await new Future(() => I.encodePng(imgGray));
 
-      setState(() {
-        _isInProgress = false;
-        _picture.writeAsBytes(png);
-      });
+    setState(() {
+      _isInProgress = false;
+      _imageFromPic = Image.memory(png, height: 300.0, width: 300.0, gaplessPlayback: false); 
+    });
 
-      return Image.memory(png, height: 300.0, width: 300.0);
-    }
-    return Image.file(_picture, height: 300.0, width: 300.0);
+    _picture.writeAsBytes(png);
   }
 
 }

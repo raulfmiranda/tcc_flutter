@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as I;
 import 'dart:ui';
 import 'package:path/path.dart';
@@ -41,12 +42,12 @@ class _MyHomePageState extends State<MyHomePage> {
   var _uploadButtonName = "UPLOAD PICTURE";
   var _isInProgress = false;
 
-  Future _takePicture() async {
+  void _takePicture() async {
     var tempPicture = await IP.ImagePicker.pickImage(source: IP.ImageSource.camera);
 
     setState(() {
+      _imageFromPic = Image.file(tempPicture, height: 300.0, width: 300.0, gaplessPlayback: false);
       _picture = tempPicture; 
-      _imageFromPic = Image.file(_picture, height: 300.0, width: 300.0, gaplessPlayback: false);
     });
   }
 
@@ -92,11 +93,9 @@ class _MyHomePageState extends State<MyHomePage> {
               final Future<StorageTaskSnapshot> storageTaskSnapshot = task.onComplete;
               
               storageTaskSnapshot.whenComplete(() {
-                // _picture.delete();
                 setState(() {
                   _isInProgress = false;
                   _uploadButtonName = "PICTURE SENT";
-                  // _picture = null;
                 });
               });
             },
@@ -122,17 +121,19 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Future<void> _applyFilter() async {
-    var img = await new Future(() => I.decodeImage(_picture.readAsBytesSync()));
-    var imgGray = await new Future(() => I.grayscale(img));
-    var png = await new Future(() => I.encodePng(imgGray));
+  void _applyFilter() async {
+
+    var jpg = await compute(decodeGrayScaleEncondeJpg, _picture);
 
     setState(() {
       _isInProgress = false;
-      _imageFromPic = Image.memory(png, height: 300.0, width: 300.0, gaplessPlayback: false); 
+      _imageFromPic = Image.memory(jpg, height: 300.0, width: 300.0, gaplessPlayback: false);
     });
 
-    _picture.writeAsBytes(png);
+    _picture.writeAsBytes(jpg);
   }
+}
 
+List<int> decodeGrayScaleEncondeJpg(File pic) {
+  return I.encodeJpg(I.grayscale(I.decodeImage(pic.readAsBytesSync())));
 }

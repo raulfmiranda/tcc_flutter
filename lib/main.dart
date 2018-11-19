@@ -49,12 +49,17 @@ class _MyHomePageState extends State<MyHomePage> {
   var _isInProgress = false;
 
   void _takePicture() async {
-    var tempPicture = await IP.ImagePicker.pickImage(source: IP.ImageSource.camera, maxWidth: 470.0); 
+    var tempPicture = await IP.ImagePicker.pickImage(source: IP.ImageSource.camera, maxWidth: 470.0)
+      .catchError((msg) {
+        debugPrint(msg);
+      }); 
 
-    setState(() {
-      _imageFromPic = Image.file(tempPicture, height: 300.0, width: 300.0, gaplessPlayback: false);
-      _picture = tempPicture; 
-    });
+    if(tempPicture != null) {
+      setState(() {
+        _imageFromPic = Image.file(tempPicture, height: 300.0, width: 300.0, gaplessPlayback: false);
+        _picture = tempPicture; 
+      });
+    }
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as I;
 import 'dart:ui';
 import 'package:path/path.dart';
@@ -8,7 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart' as IP;
 import 'package:firebase_storage/firebase_storage.dart';
 
-void main() => runApp(new MyApp());
+void main() {
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((_) {
+    runApp(new MyApp());
+  });
+} 
 
 class MyApp extends StatelessWidget {
   
@@ -43,7 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
   var _isInProgress = false;
 
   void _takePicture() async {
-    var tempPicture = await IP.ImagePicker.pickImage(source: IP.ImageSource.camera);
+    var tempPicture = await IP.ImagePicker.pickImage(source: IP.ImageSource.camera, maxWidth: 470.0); 
 
     setState(() {
       _imageFromPic = Image.file(tempPicture, height: 300.0, width: 300.0, gaplessPlayback: false);
